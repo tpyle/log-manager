@@ -1,6 +1,6 @@
-# Go Log Manager
+# Go Log Manager v2
 
-A lightweight HTTP-based log configuration manager for Go applications using [logrus](https://github.com/sirupsen/logrus). This library provides a simple HTTP endpoint to dynamically adjust logging settings in your running Go applications without requiring restarts.
+A lightweight HTTP-based log configuration manager for Go applications using [zerolog](https://github.com/rs/zerolog). This library provides a simple HTTP endpoint to dynamically adjust logging settings in your running Go applications without requiring restarts.
 
 ## Features
 
@@ -14,7 +14,7 @@ A lightweight HTTP-based log configuration manager for Go applications using [lo
 ## Installation
 
 ```bash
-go get github.com/tpyle/log-manager
+go get github.com/tpyle/log-manager/v2
 ```
 
 ## Quick Start
@@ -25,11 +25,11 @@ go get github.com/tpyle/log-manager
 package main
 
 import (
-    "log"
+    "fmt"
     "net/http"
 
-    "github.com/tpyle/log-manager"
-    "github.com/sirupsen/logrus"
+    logmanager "github.com/tpyle/log-manager/v2"
+    "github.com/rs/zerolog/log"
 )
 
 func main() {
@@ -38,12 +38,14 @@ func main() {
 
     // Your application routes
     http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-        logrus.Info("Hello World endpoint accessed")
+        log.Info().Msg("Hello World endpoint accessed")
         w.Write([]byte("Hello World!"))
     })
 
-    logrus.Info("Server starting on :8080")
-    log.Fatal(http.ListenAndServe(":8080", nil))
+    log.Info().Msg("Server starting on :8080")
+    if err := http.ListenAndServe(":8080", nil); err != nil {
+        log.Fatal().Err(err).Msg("Server failed to start")
+    }
 }
 ```
 
@@ -100,7 +102,7 @@ debug
 
 ## Log Levels
 
-The log levels come from the [logrus](https://github.com/sirupsen/logrus) package and include:
+The log levels come from the [zerolog](https://github.com/rs/zerolog) package and include:
 
 - **panic**: Highest level of severity. Logs and then calls panic.
 - **fatal**: Logs and then calls `os.Exit(1)`.
