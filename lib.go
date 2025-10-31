@@ -2,14 +2,75 @@ package logmanager
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
+	"os"
+	"strings"
 
-	"github.com/sirupsen/logrus"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 )
 
 type logConfig struct {
 	Level        string `json:"level,omitempty"`
 	ReportCaller *bool  `json:"reportCaller,omitempty"`
+}
+
+var globalLogger zerolog.Logger
+
+func init() {
+	// Initialize the global logger with console output
+	globalLogger = zerolog.New(os.Stderr).With().Timestamp().Logger()
+	log.Logger = globalLogger
+}
+
+// parseLevel converts a string level to zerolog.Level
+func parseLevel(levelStr string) (zerolog.Level, error) {
+	switch strings.ToLower(levelStr) {
+	case "panic":
+		return zerolog.PanicLevel, nil
+	case "fatal":
+		return zerolog.FatalLevel, nil
+	case "error":
+		return zerolog.ErrorLevel, nil
+	case "warn", "warning":
+		return zerolog.WarnLevel, nil
+	case "info":
+		return zerolog.InfoLevel, nil
+	case "debug":
+		return zerolog.DebugLevel, nil
+	case "trace":
+		return zerolog.TraceLevel, nil
+	default:
+		return zerolog.InfoLevel, errors.New("invalid log level")
+	}
+}
+
+// levelToString converts a zerolog.Level to its string representation
+func levelToString(level zerolog.Level) string {
+	switch level {
+	case zerolog.PanicLevel:
+		return "panic"
+	case zerolog.FatalLevel:
+		return "fatal"
+	case zerolog.ErrorLevel:
+		return "error"
+	case zerolog.WarnLevel:
+		return "warn"
+	case zerolog.InfoLevel:
+		return "info"
+	case zerolog.DebugLevel:
+		return "debug"
+	case zerolog.TraceLevel:
+		return "trace"
+	default:
+		return "info"
+	}
+}
+
+// getCurrentLevel returns the current global log level as a string
+func getCurrentLevel() string {
+	return levelToString(zerolog.GlobalLevel())
 }
 
 func HandleLogCall(w http.ResponseWriter, r *http.Request) {
@@ -22,30 +83,35 @@ func HandleLogCall(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if err := json.NewDecoder(r.Body).Decode(&settings); err != nil {
-			logrus.Warningf("error unmarshalling log settings: %v", err)
+			log.Warn().Err(err).Msg("error unmarshalling log settings")
 			http.Error(w, "invalid log config", http.StatusBadRequest)
 			return
 		}
 
 		if len(settings.Level) > 0 {
-			level, error := logrus.ParseLevel(settings.Level)
-			if error != nil {
+			level, err := parseLevel(settings.Level)
+			if err != nil {
 				http.Error(w, "unknown log level", http.StatusBadRequest)
 				return
 			}
 
-			logrus.SetLevel(level)
+			zerolog.SetGlobalLevel(level)
 		}
 
 		if settings.ReportCaller != nil {
-			logrus.SetReportCaller(*settings.ReportCaller)
+			if *settings.ReportCaller {
+				globalLogger = globalLogger.With().Caller().Logger()
+			} else {
+				globalLogger = zerolog.New(os.Stderr).With().Timestamp().Logger()
+			}
+			log.Logger = globalLogger
 		}
 
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(logrus.GetLevel().String()))
+		w.Write([]byte(getCurrentLevel()))
 	case http.MethodGet:
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(logrus.GetLevel().String()))
+		w.Write([]byte(getCurrentLevel()))
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
