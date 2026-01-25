@@ -2,7 +2,7 @@ module github.com/tpyle/log-manager/v2
 
 go 1.24
 
-require github.com/rs/zerolog v1.33.0
+require github.com/rs/zerolog v1.34.0
 
 require (
 	github.com/mattn/go-colorable v0.1.13 // indirect
