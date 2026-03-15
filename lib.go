@@ -73,45 +73,64 @@ func getCurrentLevel() string {
 	return levelToString(zerolog.GlobalLevel())
 }
 
+func GetLogLevelHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(getCurrentLevel()))
+}
+
+func SetLogLevelHandler(w http.ResponseWriter, r *http.Request) {
+	settings := logConfig{}
+
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	if r.Header.Get("Content-Type") != "application/json" {
+		http.Error(w, "Content-Type must be application/json", http.StatusUnsupportedMediaType)
+		return
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&settings); err != nil {
+		log.Warn().Err(err).Msg("error unmarshalling log settings")
+		http.Error(w, "invalid log config", http.StatusBadRequest)
+		return
+	}
+
+	if len(settings.Level) > 0 {
+		level, err := parseLevel(settings.Level)
+		if err != nil {
+			http.Error(w, "unknown log level", http.StatusBadRequest)
+			return
+		}
+
+		zerolog.SetGlobalLevel(level)
+	}
+
+	if settings.ReportCaller != nil {
+		if *settings.ReportCaller {
+			globalLogger = globalLogger.With().Caller().Logger()
+		} else {
+			globalLogger = zerolog.New(os.Stderr).With().Timestamp().Logger()
+		}
+		log.Logger = globalLogger
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(getCurrentLevel()))
+}
+
 func HandleLogCall(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPost:
-		settings := logConfig{}
-		if r.Header.Get("Content-Type") != "application/json" {
-			http.Error(w, "Content-Type must be application/json", http.StatusUnsupportedMediaType)
-			return
-		}
-
-		if err := json.NewDecoder(r.Body).Decode(&settings); err != nil {
-			log.Warn().Err(err).Msg("error unmarshalling log settings")
-			http.Error(w, "invalid log config", http.StatusBadRequest)
-			return
-		}
-
-		if len(settings.Level) > 0 {
-			level, err := parseLevel(settings.Level)
-			if err != nil {
-				http.Error(w, "unknown log level", http.StatusBadRequest)
-				return
-			}
-
-			zerolog.SetGlobalLevel(level)
-		}
-
-		if settings.ReportCaller != nil {
-			if *settings.ReportCaller {
-				globalLogger = globalLogger.With().Caller().Logger()
-			} else {
-				globalLogger = zerolog.New(os.Stderr).With().Timestamp().Logger()
-			}
-			log.Logger = globalLogger
-		}
-
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(getCurrentLevel()))
+		SetLogLevelHandler(w, r)
 	case http.MethodGet:
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(getCurrentLevel()))
+		GetLogLevelHandler(w, r)
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
