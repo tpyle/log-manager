@@ -3,7 +3,7 @@ module github.com/tpyle/log-manager/v2
 go 1.25.0
 
 require (
-	github.com/rs/zerolog v1.35.0
+	github.com/rs/zerolog v1.35.1
 	github.com/spf13/viper v1.21.0
 )
 
