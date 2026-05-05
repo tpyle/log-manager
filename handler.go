@@ -8,12 +8,15 @@ import (
 	"github.com/spf13/viper"
 )
 
+// LogManager exposes HTTP handlers for managing runtime log configuration.
 type LogManager struct {
 	http.ServeMux
 
 	viperInstance *viper.Viper
 }
 
+// NewLogManager creates a LogManager and registers HTTP routes for reading and
+// updating the global zerolog level.
 func NewLogManager(v *viper.Viper) *LogManager {
 	lm := &LogManager{
 		viperInstance: v,
@@ -24,6 +27,8 @@ func NewLogManager(v *viper.Viper) *LogManager {
 	return lm
 }
 
+// GetLogLevelHandler returns the current global zerolog level as a JSON
+// payload: {"level":"<value>"}.
 func (lm *LogManager) GetLogLevelHandler(w http.ResponseWriter, r *http.Request) {
 	logMessage := LogMessage{
 		Level: zerolog.GlobalLevel().String(),
@@ -35,6 +40,10 @@ func (lm *LogManager) GetLogLevelHandler(w http.ResponseWriter, r *http.Request)
 	}
 }
 
+// SetLogLevelHandler validates and applies a new global zerolog level from a
+// JSON request payload: {"level":"<value>"}.
+//
+// The request must include Content-Type: application/json.
 func (lm *LogManager) SetLogLevelHandler(w http.ResponseWriter, r *http.Request) {
 	message := LogMessage{}
 

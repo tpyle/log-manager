@@ -24,8 +24,8 @@ func newFailingResponseWriter() *failingResponseWriter {
 	return &failingResponseWriter{header: make(http.Header)}
 }
 
-func (fw *failingResponseWriter) Header() http.Header      { return fw.header }
-func (fw *failingResponseWriter) WriteHeader(code int)     { fw.code = code }
+func (fw *failingResponseWriter) Header() http.Header       { return fw.header }
+func (fw *failingResponseWriter) WriteHeader(code int)      { fw.code = code }
 func (fw *failingResponseWriter) Write([]byte) (int, error) { return 0, fmt.Errorf("write error") }
 
 // newTestLogManager is a helper that creates a LogManager backed by a fresh viper instance.

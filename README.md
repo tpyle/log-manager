@@ -49,7 +49,38 @@ func main() {
 }
 ```
 
+### Using LogManager (JSON /config endpoints)
+
+If you prefer a dedicated handler with method-based routes, use `NewLogManager`.
+
+```go
+package main
+
+import (
+  "net/http"
+
+  logmanager "github.com/tpyle/log-manager/v2"
+  "github.com/spf13/viper"
+)
+
+func main() {
+  lm := logmanager.NewLogManager(viper.New())
+  http.Handle("/", lm)
+  _ = http.ListenAndServe(":8080", nil)
+}
+```
+
+`LogManager` registers these routes:
+
+- `GET /config` returns JSON: `{"level":"info"}`
+- `POST /config` accepts JSON: `{"level":"debug"}` and returns the same payload on success
+
 ## API Reference
+
+`log-manager` currently provides two handler styles:
+
+- `HandleLogCall` (legacy): single endpoint (`/api/log`) that returns plain-text level responses
+- `LogManager` (recommended for new code): method-based routes on `/config` with JSON requests/responses
 
 ### Get Current Log Level
 
