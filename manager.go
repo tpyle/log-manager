@@ -1,13 +1,13 @@
 // Package logmanager provides an HTTP handler for reading and changing a
 // program's log level at runtime.
 //
-// The package depends only on the standard library and controls
+// The module has no dependencies outside the standard library and controls
 // [log/slog] levels out of the box (see [NewSlog]). Adapters for third-party
-// loggers live in subpackages so their dependencies are only compiled into
-// programs that import them:
+// loggers are separate modules, so their dependencies are added to a program
+// only if it requires the adapter:
 //
-//   - github.com/tpyle/log-manager/v3/zerologmgr for zerolog
-//   - github.com/tpyle/log-manager/v3/logrusmgr for logrus
+//   - github.com/tpyle/log-manager/zerologmgr/v3 for zerolog
+//   - github.com/tpyle/log-manager/logrusmgr/v3 for logrus
 //
 // Any other logger can be supported by implementing [LevelController].
 //
@@ -78,7 +78,7 @@ type LevelChangeFunc func(ctx context.Context, from, to string)
 // Mount it under a prefix with [http.StripPrefix], or register
 // [LogManager.GetLevelHandler] and [LogManager.SetLevelHandler] on routes of
 // your choosing. Create one with [New], [NewSlog], or a constructor from an
-// adapter subpackage.
+// adapter module.
 type LogManager struct {
 	controller LevelController
 	onChange   LevelChangeFunc

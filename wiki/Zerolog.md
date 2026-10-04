@@ -1,7 +1,11 @@
 # Using zerolog
 
+```bash
+go get github.com/tpyle/log-manager/zerologmgr/v3
+```
+
 ```go
-import "github.com/tpyle/log-manager/v3/zerologmgr"
+import "github.com/tpyle/log-manager/zerologmgr/v3"
 
 lm := zerologmgr.New()
 http.Handle("/log/", http.StripPrefix("/log", lm))

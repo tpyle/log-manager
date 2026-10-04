@@ -10,6 +10,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -345,5 +346,23 @@ func TestCoreImportsOnlyStdlib(t *testing.T) {
 				t.Errorf("%s imports non-stdlib package %q", name, path)
 			}
 		}
+	}
+}
+
+// The root module must have no requirements, so that depending on it never
+// adds zerolog, logrus or anything else to a program's module graph. Adapters
+// with third-party dependencies are separate modules.
+func TestRootModuleHasNoRequirements(t *testing.T) {
+	data, err := os.ReadFile("go.mod")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i, line := range strings.Split(string(data), "\n") {
+		if strings.HasPrefix(strings.TrimSpace(line), "require") {
+			t.Errorf("go.mod:%d: %s", i+1, line)
+		}
+	}
+	if _, err := os.Stat("go.sum"); err == nil {
+		t.Error("go.sum exists, so the root module has dependencies")
 	}
 }

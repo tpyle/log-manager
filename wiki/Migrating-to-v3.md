@@ -1,14 +1,19 @@
 # Migrating to v3
 
-v3 moves logger support out of the core package so that it no longer requires
-zerolog. The core package uses `log/slog`, and zerolog support moved to the
-`zerologmgr` subpackage. The `viper` dependency was removed.
+v3 moves logger support out of the core module so that it no longer requires
+zerolog. The core module uses `log/slog`, and zerolog support moved to the
+separate `github.com/tpyle/log-manager/zerologmgr/v3` module. The `viper`
+dependency was removed.
+
+```bash
+go get github.com/tpyle/log-manager/v3 github.com/tpyle/log-manager/zerologmgr/v3
+```
 
 ## From v2 `LogManager`
 
 ```diff
 -import logmanager "github.com/tpyle/log-manager/v2"
-+import "github.com/tpyle/log-manager/v3/zerologmgr"
++import "github.com/tpyle/log-manager/zerologmgr/v3"
 
 -lm := logmanager.NewLogManager(viper.New())
 +lm := zerologmgr.New()

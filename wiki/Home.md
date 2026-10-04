@@ -7,15 +7,15 @@ change a running Go program's log level:
 - `POST /config` with `{"level":"<new>"}` changes it and returns the level now
   in effect
 
-The core package depends only on the standard library and controls `log/slog`.
-zerolog and logrus are supported through adapter subpackages. Their
-dependencies are downloaded and compiled only if you import the adapter.
+The core module has no dependencies outside the standard library and controls
+`log/slog`. zerolog and logrus are supported through separate adapter modules,
+so those libraries are added to your `go.mod` only if you add the adapter.
 
 | Logger | Import | Constructor | What it controls |
 |--------|--------|-------------|------------------|
 | `log/slog` | `github.com/tpyle/log-manager/v3` | `logmanager.NewSlog(levelVar)` | a `*slog.LevelVar` shared with your handlers |
-| zerolog | `github.com/tpyle/log-manager/v3/zerologmgr` | `zerologmgr.New()` | `zerolog.SetGlobalLevel` |
-| logrus | `github.com/tpyle/log-manager/v3/logrusmgr` | `logrusmgr.New(logger)` | `(*logrus.Logger).SetLevel` |
+| zerolog | `github.com/tpyle/log-manager/zerologmgr/v3` | `zerologmgr.New()` | `zerolog.SetGlobalLevel` |
+| logrus | `github.com/tpyle/log-manager/logrusmgr/v3` | `logrusmgr.New(logger)` | `(*logrus.Logger).SetLevel` |
 | anything else | `github.com/tpyle/log-manager/v3` | `logmanager.New(controller)` | your `LevelController` |
 
 ## Pages
@@ -29,5 +29,6 @@ dependencies are downloaded and compiled only if you import the adapter.
 - [Logging and Auditing Changes](Change-Logging.md)
 - [Security](Security.md)
 - [Migrating to v3](Migrating-to-v3.md)
+- [Development and Releasing](Development.md)
 
 Runnable programs for each logger are in the repository's `examples/` directory.

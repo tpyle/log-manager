@@ -6,6 +6,11 @@
 version: 2
 updates:
   - package-ecosystem: "gomod" # See documentation for possible values
-    directory: "/" # Location of package manifests
+    # Every Go module in the repository.
+    directories:
+      - "/"
+      - "/zerologmgr"
+      - "/logrusmgr"
+      - "/examples"
     schedule:
       interval: "weekly"

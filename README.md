@@ -3,17 +3,19 @@
 An HTTP handler for reading and changing a Go program's log level at runtime,
 without a restart.
 
-The core package depends only on the standard library and controls
+The core module has no dependencies outside the standard library and controls
 [`log/slog`](https://pkg.go.dev/log/slog). Adapters for
 [zerolog](https://github.com/rs/zerolog) and
-[logrus](https://github.com/sirupsen/logrus) live in subpackages, so those
-libraries are downloaded and compiled only if you import the adapter. Any other
+[logrus](https://github.com/sirupsen/logrus) are separate modules, so those
+libraries never appear in your `go.mod` unless you add the adapter. Any other
 logger can be plugged in by implementing a two-method interface.
 
 ## Install
 
 ```bash
-go get github.com/tpyle/log-manager/v3
+go get github.com/tpyle/log-manager/v3              # core and slog
+go get github.com/tpyle/log-manager/zerologmgr/v3   # zerolog adapter
+go get github.com/tpyle/log-manager/logrusmgr/v3    # logrus adapter
 ```
 
 Requires Go 1.26+. v2 (zerolog only) remains available at
@@ -40,7 +42,7 @@ http.Handle("/log/", http.StripPrefix("/log", logmanager.NewSlog(level)))
 Controls zerolog's global level:
 
 ```go
-import "github.com/tpyle/log-manager/v3/zerologmgr"
+import "github.com/tpyle/log-manager/zerologmgr/v3"
 
 http.Handle("/log/", http.StripPrefix("/log", zerologmgr.New()))
 ```
@@ -50,7 +52,7 @@ http.Handle("/log/", http.StripPrefix("/log", zerologmgr.New()))
 Controls one `*logrus.Logger` (`nil` means `logrus.StandardLogger()`):
 
 ```go
-import "github.com/tpyle/log-manager/v3/logrusmgr"
+import "github.com/tpyle/log-manager/logrusmgr/v3"
 
 http.Handle("/log/", http.StripPrefix("/log", logrusmgr.New(logger)))
 ```
@@ -107,10 +109,15 @@ Each change is logged at info level as `log level changed` with `oldLevel` and
 
 ## Development
 
+The repository holds four Go modules: the root, `zerologmgr`, `logrusmgr` and
+`examples`. Run commands in each one:
+
 ```bash
-go test -race -cover ./...
-golangci-lint run ./...
+for m in . zerologmgr logrusmgr examples; do (cd $m && go test -race -cover ./...); done
 ```
+
+See [wiki/Development.md](wiki/Development.md) for the module layout and how to
+release.
 
 ## License
 

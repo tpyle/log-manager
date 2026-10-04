@@ -15,7 +15,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
-	"github.com/tpyle/log-manager/v3/zerologmgr"
+	"github.com/tpyle/log-manager/zerologmgr/v3"
 )
 
 func main() {

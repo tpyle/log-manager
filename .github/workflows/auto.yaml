@@ -11,7 +11,15 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    name: Test and Lint
+    name: Test and Lint (${{ matrix.module }})
+    strategy:
+      fail-fast: false
+      matrix:
+        # Each directory is a separate Go module.
+        module: [".", zerologmgr, logrusmgr, examples]
+    defaults:
+      run:
+        working-directory: ${{ matrix.module }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -19,13 +27,14 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          go-version-file: 'go.mod'
+          go-version-file: ${{ matrix.module }}/go.mod
+          cache-dependency-path: ${{ matrix.module }}/go.mod
 
-      - name: Install dependencies
-        run: go mod tidy
+      - name: Check go.mod is tidy
+        run: go mod tidy -diff
 
       - name: Run tests
-        run: go test ./...
+        run: go test -race ./...
 
       - name: Run lint
         run: go vet ./...

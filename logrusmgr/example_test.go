@@ -9,7 +9,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/tpyle/log-manager/v3/logrusmgr"
+	"github.com/tpyle/log-manager/logrusmgr/v3"
 )
 
 func ExampleNew() {

@@ -1,7 +1,11 @@
 # Using logrus
 
+```bash
+go get github.com/tpyle/log-manager/logrusmgr/v3
+```
+
 ```go
-import "github.com/tpyle/log-manager/v3/logrusmgr"
+import "github.com/tpyle/log-manager/logrusmgr/v3"
 
 logger := logrus.New()
 lm := logrusmgr.New(logger) // nil means logrus.StandardLogger()
