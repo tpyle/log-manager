@@ -1,188 +1,126 @@
-# Go Log Manager v2
+# Go Log Manager v3
 
-A lightweight HTTP-based log configuration manager for Go applications using [zerolog](https://github.com/rs/zerolog). This library provides a simple HTTP endpoint to dynamically adjust logging settings in your running Go applications without requiring restarts.
+An HTTP handler for reading and changing a Go program's log level at runtime,
+without a restart.
 
-## Features
+The core module has no dependencies outside the standard library and controls
+[`log/slog`](https://pkg.go.dev/log/slog). Adapters for
+[zerolog](https://github.com/rs/zerolog) and
+[logrus](https://github.com/sirupsen/logrus) are separate modules, so those
+libraries never appear in your `go.mod` unless you add the adapter. Any other
+logger can be plugged in by implementing a two-method interface.
 
-- **Dynamic Log Level Control**: Change log levels at runtime via HTTP API
-- **Report Caller Configuration**: Toggle caller information in log entries
-- **RESTful Interface**: Simple GET/POST endpoints for configuration
-- **JSON Configuration**: Easy-to-use JSON payload for settings
-- **Zero Downtime**: Modify logging behavior without application restarts
-- **Full Test Coverage**: Comprehensive unit tests with 100% coverage
-
-## Installation
+## Install
 
 ```bash
-go get github.com/tpyle/log-manager/v2
+go get github.com/tpyle/log-manager/v3              # core and slog
+go get github.com/tpyle/log-manager/zerologmgr/v3   # zerolog adapter
+go get github.com/tpyle/log-manager/logrusmgr/v3    # logrus adapter
 ```
 
-## Quick Start
+Requires Go 1.26+. v2 (zerolog only) remains available at
+`github.com/tpyle/log-manager/v2`.
 
-### Basic Usage
+## Usage
+
+### slog
+
+slog has no global level, so share one `*slog.LevelVar` between your handler
+options and the manager:
 
 ```go
-package main
+import logmanager "github.com/tpyle/log-manager/v3"
 
-import (
-    "fmt"
-    "net/http"
+level := new(slog.LevelVar)
+slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: level})))
 
-    logmanager "github.com/tpyle/log-manager/v2"
-    "github.com/rs/zerolog/log"
-)
-
-func main() {
-    // Set up the log management endpoint
-    http.HandleFunc("/api/log", logmanager.HandleLogCall)
-
-    // Your application routes
-    http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-        log.Info().Msg("Hello World endpoint accessed")
-        w.Write([]byte("Hello World!"))
-    })
-
-    log.Info().Msg("Server starting on :8080")
-    if err := http.ListenAndServe(":8080", nil); err != nil {
-        log.Fatal().Err(err).Msg("Server failed to start")
-    }
-}
+http.Handle("/log/", http.StripPrefix("/log", logmanager.NewSlog(level)))
 ```
 
-### Using LogManager (JSON /config endpoints)
+### zerolog
 
-If you prefer a dedicated handler with method-based routes, use `NewLogManager`.
+Controls zerolog's global level:
 
 ```go
-package main
+import "github.com/tpyle/log-manager/zerologmgr/v3"
 
-import (
-  "net/http"
+http.Handle("/log/", http.StripPrefix("/log", zerologmgr.New()))
+```
 
-  logmanager "github.com/tpyle/log-manager/v2"
-  "github.com/spf13/viper"
-)
+### logrus
 
-func main() {
-  lm := logmanager.NewLogManager(viper.New())
-  http.Handle("/", lm)
-  _ = http.ListenAndServe(":8080", nil)
+Controls one `*logrus.Logger` (`nil` means `logrus.StandardLogger()`):
+
+```go
+import "github.com/tpyle/log-manager/logrusmgr/v3"
+
+http.Handle("/log/", http.StripPrefix("/log", logrusmgr.New(logger)))
+```
+
+### Any other logger
+
+Implement `logmanager.LevelController` and pass it to `logmanager.New`:
+
+```go
+type LevelController interface {
+    Level() string
+    SetLevel(name string) error // wrap logmanager.ErrUnknownLevel for bad names
 }
 ```
 
-`LogManager` registers these routes:
+See [wiki/Custom-Loggers.md](wiki/Custom-Loggers.md).
 
-- `GET /config` returns JSON: `{"level":"info"}`
-- `POST /config` accepts JSON: `{"level":"debug"}` and returns the same payload on success
-
-## API Reference
-
-`log-manager` currently provides two handler styles:
-
-- `HandleLogCall` (legacy): single endpoint (`/api/log`) that returns plain-text level responses
-- `LogManager` (recommended for new code): method-based routes on `/config` with JSON requests/responses
-
-### Get Current Log Level
-
-**GET** `/api/log`
-
-Returns the current log level as a plain text response.
-
-**Example:**
-```bash
-curl http://localhost:8080/api/log
-```
-
-**Response:**
-```
-info
-```
-
-### Update Log Configuration
-
-**POST** `/api/log`
-
-Updates the logging configuration with a JSON payload.
-
-**Headers:**
-- `Content-Type: application/json`
-
-**Request Body:**
-```json
-{
-  "level": "debug",
-  "reportCaller": true
-}
-```
-
-**Parameters:**
-- `level` (string, optional): Log level to set. Valid values: `panic`, `fatal`, `error`, `warn`, `warning`, `info`, `debug`, `trace`
-- `reportCaller` (boolean, optional): Whether to include caller information in log entries
-
-**Example:**
-```bash
-curl -X POST http://localhost:8080/api/log \
-  -H "Content-Type: application/json" \
-  -d '{"level": "debug", "reportCaller": true}'
-```
-
-**Response:**
-```
-debug
-```
-
-## Log Levels
-
-The log levels come from the [zerolog](https://github.com/rs/zerolog) package and include:
-
-- **panic**: Highest level of severity. Logs and then calls panic.
-- **fatal**: Logs and then calls `os.Exit(1)`.
-- **error**: Error conditions.
-- **warn/warning**: Warning conditions.
-- **info**: General informational messages.
-- **debug**: Debug-level messages.
-- **trace**: Most verbose level.
-
-## Error Handling
-
-The API returns appropriate HTTP status codes:
-
-- **200 OK** - Configuration updated successfully
-- **400 Bad Request** - Invalid JSON or unknown log level
-- **405 Method Not Allowed** - Unsupported HTTP method
-- **415 Unsupported Media Type** - Missing or incorrect Content-Type header
-
-**Example error response:**
-```bash
-curl -X POST http://localhost:8080/api/log \
-  -H "Content-Type: application/json" \
-  -d '{"level": "invalid"}'
-
-# Response: 400 Bad Request
-# Body: unknown log level
-```
-
-## Testing
-
-Run the test suite:
+## HTTP API
 
 ```bash
-go test -v
+$ curl localhost:8081/log/config
+{"level":"info"}
+
+$ curl -X POST localhost:8081/log/config -H 'Content-Type: application/json' -d '{"level":"debug"}'
+{"level":"debug"}
 ```
 
-Run with coverage:
+| Status | When |
+|--------|------|
+| 200 | Success. The body holds the level now in effect. |
+| 400 | Invalid JSON, or the level is missing or unknown |
+| 405 | Method other than GET, HEAD or POST |
+| 413 | Body larger than 64 KiB |
+| 415 | `Content-Type` is not `application/json` |
+| 500 | The controller failed for a reason other than an unknown level |
+
+Accepted level names depend on the logger. See
+[wiki/HTTP-API.md](wiki/HTTP-API.md).
+
+Each change is logged at info level as `log level changed` with `oldLevel` and
+`newLevel` fields. Use `logmanager.WithOnChange` to replace or disable this.
+
+> **Security:** the handler does no authentication. Serve it on an internal
+> port, or wrap it in your own auth middleware. See
+> [wiki/Security.md](wiki/Security.md).
+
+## Documentation
+
+- [wiki/](wiki/Home.md): guides for each logger, the HTTP API, security, and
+  [migrating from v2](wiki/Migrating-to-v3.md)
+- [examples/](examples/): runnable servers for slog, zerolog, logrus and a
+  custom logger (`go run ./examples/slog`)
+- API reference: <https://pkg.go.dev/github.com/tpyle/log-manager/v3>
+
+## Development
+
+The repository holds four Go modules: the root, `zerologmgr`, `logrusmgr` and
+`examples`. Run commands in each one:
 
 ```bash
-go test -cover
+for m in . zerologmgr logrusmgr examples; do
+  (cd $m && go mod tidy -diff && go vet ./... && go test -race -cover ./... && golangci-lint run ./...)
+done
 ```
 
-Generate coverage report:
-
-```bash
-go test -coverprofile=coverage.out
-go tool cover -html=coverage.out
-```
+See [wiki/Development.md](wiki/Development.md) for the module layout and how to
+release. All three modules are released together with the same version.
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT. See [LICENSE](LICENSE).

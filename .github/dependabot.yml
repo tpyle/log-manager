@@ -1,11 +1,31 @@
-# To get started with Dependabot version updates, you'll need to specify which
-# package ecosystems to update and where the package manifests are located.
-# Please see the documentation for all configuration options:
+# Dependabot configuration. See
 # https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
 
 version: 2
 updates:
-  - package-ecosystem: "gomod" # See documentation for possible values
-    directory: "/" # Location of package manifests
+  # Every Go module in the repository. Keep in sync with the CI matrix.
+  - package-ecosystem: "gomod"
+    directories:
+      - "/"
+      - "/zerologmgr"
+      - "/logrusmgr"
+      - "/examples"
     schedule:
       interval: "weekly"
+    ignore:
+      # Modules from this repository are replaced with local paths, and their
+      # required versions are set by hand at release time.
+      - dependency-name: "github.com/tpyle/log-manager/*"
+    groups:
+      go-dependencies:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
