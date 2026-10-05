@@ -33,35 +33,41 @@ Run commands per module:
 
 ```bash
 for m in . zerologmgr logrusmgr examples; do
-  (cd $m && go mod tidy -diff && go vet ./... && go test -race -cover ./...)
+  (cd $m && go mod tidy -diff && go vet ./... && go test -race -cover ./... && golangci-lint run ./...)
 done
 ```
 
-CI runs the same steps for each module.
+CI runs the same steps, plus golangci-lint, for each module, and reports the
+combined result as the `Test and Lint` check that `trunk` requires. When adding
+a module, add it to the CI matrix and to `.github/dependabot.yml`.
 
 ## Releasing
 
-Tag the core first, because the adapters require a released core version:
+The core and both adapters are always released together with the same
+version number. Go versions each module by its own tags, so a release is three
+tags on the same commit:
 
-```bash
-git tag v3.0.0
-git tag zerologmgr/v3.0.0
-git tag logrusmgr/v3.0.0
-git push origin v3.0.0 zerologmgr/v3.0.0 logrusmgr/v3.0.0
-```
+1. Set the new version in the `require` lines for this repository's modules in
+   `zerologmgr/go.mod`, `logrusmgr/go.mod` and `examples/go.mod`, and merge.
+   Dependabot ignores these modules, so it never changes these lines.
+2. Tag the merge commit and push the tags:
+   ```bash
+   V=vX.Y.Z
+   git tag -a $V -m $V && git tag -a zerologmgr/$V -m $V && git tag -a logrusmgr/$V -m $V
+   git push origin $V zerologmgr/$V logrusmgr/$V
+   ```
+3. Check from a scratch module that
+   `go get github.com/tpyle/log-manager/zerologmgr/v3@$V` resolves.
 
-The adapters' versions don't have to match the core, but keeping the major
-version in step makes compatibility clear.
+Because all three tags are on one commit, an adapter's required core version
+always exists once the release is pushed.
 
-If an adapter starts using a new core API, raise its `require` line to the
-core version that introduced the API, and release that core version before
-tagging the adapter. Because the `replace` directive hides a missing core
-release, check that the adapter builds against the released core before
-tagging it:
+## Wiki
 
-```bash
-cd zerologmgr
-go mod edit -dropreplace github.com/tpyle/log-manager/v3
-go build ./... && go test ./...
-git checkout go.mod go.sum
-```
+`wiki/` is published to the GitHub wiki by the Wiki workflow whenever it
+changes on `trunk`. Links between pages are written as `Page.md` so they work
+when browsing the repository, and the workflow rewrites them to wiki links.
+Edits made in the GitHub wiki editor are overwritten on the next sync.
+
+The workflow can't create the wiki. Before it runs for the first time, create
+any page in the repository's Wiki tab.

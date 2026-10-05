@@ -113,11 +113,13 @@ The repository holds four Go modules: the root, `zerologmgr`, `logrusmgr` and
 `examples`. Run commands in each one:
 
 ```bash
-for m in . zerologmgr logrusmgr examples; do (cd $m && go test -race -cover ./...); done
+for m in . zerologmgr logrusmgr examples; do
+  (cd $m && go mod tidy -diff && go vet ./... && go test -race -cover ./... && golangci-lint run ./...)
+done
 ```
 
 See [wiki/Development.md](wiki/Development.md) for the module layout and how to
-release.
+release. All three modules are released together with the same version.
 
 ## License
 

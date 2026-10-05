@@ -6,7 +6,16 @@
 go get github.com/tpyle/log-manager/v3
 ```
 
-Go 1.26 or newer is required.
+For zerolog or logrus, also add the adapter. Each adapter is its own Go
+module, so these loggers never enter your dependency graph unless you use them:
+
+```bash
+go get github.com/tpyle/log-manager/zerologmgr/v3
+go get github.com/tpyle/log-manager/logrusmgr/v3
+```
+
+The core and both adapters share the same version number, so use matching
+versions. Go 1.26 or newer is required.
 
 ## Add the handler
 

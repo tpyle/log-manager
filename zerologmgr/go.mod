@@ -13,6 +13,6 @@ require (
 	golang.org/x/sys v0.48.0 // indirect
 )
 
-// Development only: replace directives are ignored by modules that depend on
-// this one, which use the required version above.
+// Builds in this repository use the local core module. Consumers ignore this
+// directive and use the required version above.
 replace github.com/tpyle/log-manager/v3 => ../
